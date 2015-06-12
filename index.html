@@ -1,0 +1,267 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <title>遗传算法求解TSP</title>
+    <script type="text/javascript" src="http://libs.baidu.com/jquery/1.11.1/jquery.min.js"></script>
+    <script type="text/javascript" src="map.js"></script>
+    <script type="text/javascript" src="GATSP.js"></script>
+    <script type="text/javascript" src="Unit.js"></script>
+    <script type="text/javascript" src="defines.js"></script>
+
+    <style type="text/css">
+        .title {
+            text-align: center;
+            clear: both;
+        }
+
+        .panel {
+            text-align: left;
+            float: left;
+        }
+
+        .canvas {
+            float: right;
+        }
+
+        .param {
+            float: top;
+        }
+
+        .inputbox {
+            width: 40px;
+        }
+
+        .console {
+            float: bottom;
+        }
+
+        #textconsole {
+            width: 100%;
+            height: 130px;
+        }
+    </style>
+
+</head>
+
+<body>
+<script type="text/javascript">
+    var city_list = [];
+
+    $(document).ready(function () {
+        canvas = $("#canvas").get(0);
+        if (canvas.getContext) {
+            context = canvas.getContext('2d');
+        } else {
+            alert("对不起，你的浏览器不支持Canvas!");
+        }
+        $('#btnstart').prop('disabled', true);
+        $('#btnend').prop('disabled', true);
+
+        $('#canvas').click(function (e) {
+            console.log(e.offsetX, e.offsetY);
+            city_list.push({x: e.offsetX, y: e.offsetY});
+            context.beginPath();
+            context.arc(e.offsetX, e.offsetY, 5, 0, Math.PI * 2, true);
+            context.closePath();
+            if ($("#if_fill").prop('checked'))
+                context.fill();
+            else
+                context.stroke();
+            if (city_list.length >= 2) {
+                $('#btnstart').prop('disabled', false);
+            }
+        });
+    });
+
+    //判断浏览器是否支持html5 canvas
+    function test() {
+        if (canvas.getContext) {
+            context.clearRect(0, 0, 500, 500);
+            context.fillText('恭喜您，浏览器支持Canvas!', 180, 250);
+        } else {
+            alert("对不起，你的浏览器不支持Canvas!");
+        }
+    }
+
+    var TSPLife = function () {
+        if (tsp.started) {
+            tsp.get_next_generation();
+            tsp.render(true);
+            setTimeout(TSPLife, $('#speed').val());
+        } else {
+            $('#btnstart').prop('disabled', false);
+        }
+    };
+    function start() {
+        var param = {
+            city: null,
+            define_data: null
+        };
+        get_param(param);
+        tsp = new GATSP(param);
+        tsp.run();
+        TSPLife(tsp);
+        $('#btnend').prop('disabled', false);
+        $('#btnstart').prop('disabled', true);
+    }
+    function end() {
+        tsp.stop();
+        $('#btnend').prop('disabled', true);
+        $('#btnstart').prop('disabled', false);
+
+    }
+
+    function get_param(param) {
+        var define_data_list = {
+            REMAIN_RATE: $("#remain_rate").val() ? $("#remain_rate").val() / 100 : 0.2,//把父辈精英加入子代的比例
+            UNIT_NUM: $("#unit_num").val() ? $("#unit_num").val() : 50,//种群中个体的数目
+            HYBRIDIZATION_RATE: $("#hybridization_rate").val() ? $("#hybridization_rate").val() / 100 : 0.85,//杂交的概率
+            VARIATION_RATE: $("#variation_rate").val() ? $("#variation_rate").val() / 100 : 0.1,//变异的概率
+            MAX_SAME_NUM: $("#max_same_num").val() ? $("#max_same_num").val() : 5,//连续n代保持子代最优个体的适应度小于等于父代 就停止
+            MAX_GENERATION: $("#max_generation").val() ? $("#max_generation").val() : 0,//最大多少代 0代表无限制
+            CITY_RADIUS: $("#city_radius").val() ? $("#city_radius").val() : 5,//城市半径
+            PATH_WIDTH: $("#path_width").val() ? $("#path_width").val() : 2,//路线粗度
+            CITY_COLOR: $("#city_color").val(),
+            PATH_COLOR: $("#path_color").val(),
+            IF_FILL: $("#if_fill").prop('checked')
+        };
+        param.city = city_list;
+        param.define_data = define_data_list;
+    }
+
+    function changecolor(option) {
+        $(option).css("background-color", option.value);
+        if (option.value != '#000000')
+            $(option).css("color", "#000000");
+        else
+            $(option).css("color", "#FFFFFF");
+    }
+
+    function new_map() {
+        city_list = [];
+        context.clearRect(0, 0, 500, 500);
+        $('#btnstart').prop('disabled', true);
+    }
+
+    function draw_circle() {
+        new_map();
+        var margin = 50;	//边距
+        var radius = 200;
+        var origin = {		//圆点
+            x: 250,
+            y: 250
+        };
+        //计算相邻城市之间的间隔角度
+        var segmentSize = 2 * Math.PI / 50;
+        var angle = 0;
+        var cities = [];
+        while (angle < 2 * Math.PI) {
+            var thisCity = {x: 0, y: 0};
+            thisCity.x = radius * Math.sin(angle) + origin.x;
+            thisCity.y = radius * Math.cos(angle) + origin.y;
+            city_list.push(thisCity);
+            angle = angle + segmentSize;
+        }
+        draw_city(city_list, 5, 'black', $("#if_fill").prop('checked'));
+        $('#btnstart').prop('disabled', false);
+    }
+
+    function draw_city(points, radius, color, iffill) {
+        context.fillStyle = color;
+        context.strokeStyle = color;
+        for (var i = 0; i < points.length; i++) {
+            context.beginPath();
+            context.arc(points[i].x, points[i].y, radius, 0, Math.PI * 2, true);
+            context.closePath();
+            if (iffill)
+                context.fill();
+            else
+                context.stroke();
+        }
+    }
+
+
+</script>
+<div class="title">
+    <p>遗传算法求解TSP问题</p>
+</div>
+<div class="panel">
+    <div class="param">
+        <ul>
+            <li>演示速度: 快（1ms）<input id="speed" type=range min=1 max=1000 step=5 value=500></input>慢（1s）</li>
+            <li>种群大小：<input class="inputbox" id="unit_num" type="text" value=50></input> （默认50）</li>
+            <li>父代精英保留比率：<input class="inputbox" id="remain_rate" type="text" value=20></input>% （默认20%）</li>
+            <li>杂交率：<input class="inputbox" id="hybridization_rate" type="text" value=85></input>% （默认85%）</li>
+            <li>变异率：<input class="inputbox" id="variation_rate" type="text" value=10></input>% （默认10%）</li>
+            <li>最大代数：<input class="inputbox" id="max_generation" type="text" value=0></input> （默认0无限制）</li>
+            <li>停止参数：<input class="inputbox" id="max_same_num" type="text" value=5></input> （默认连续5代适应度非递增则停止）</li>
+            <li>城市半径：<input class="inputbox" id="city_radius" type="text" value=5></input> （默认5px）</li>
+            <li>路线粗度：<input class="inputbox" id="path_width" type="text" value=2></input> （默认2px）</li>
+            <li>城市颜色：
+                <select id="city_color" onchange="changecolor(this);" style="background-color:#000000; color:#FFFFFF;">
+                    <option style="background-color:#000000; color:#FFFFFF;" value="#000000">黑</option>
+                    <option style="background-color:#FFFFFF;color:#000000" value="#FFFFFF">白</option>
+                    <option style="background-color:#999999" value="#999999">灰</option>
+                    <option style="background-color:#666666" value="#666666">#666666</option>
+                    <option style="background-color:#FF0000" value="#FF0000">#FF0000</option>
+                    <option style="background-color:#00FF00" value="#00FF00">#00FF00</option>
+                    <option style="background-color:#0000FF" value="#0000FF">#0000FF</option>
+                    <option style="background-color:#FFFF00" value="#FFFF00">#FFFF00</option>
+                    <option style="background-color:#00FFFF" value="#00FFFF">#00FFFF</option>
+                    <option style="background-color:#FF00FF" value="#FF00FF">#FF00FF</option>
+                    <option style="background-color:#009966" value="#009966">#009966</option>
+                    <option style="background-color:#336633" value="#336633">#336633</option>
+                    <option style="background-color:#6666CC" value="#6666CC">#6666CC</option>
+                    <option style="background-color:#996633" value="#996633">#996633</option>
+                    <option style="background-color:#CC6699" value="#CC6699">#CC6699</option>
+                    <option style="background-color:#CCCCCC" value="#CCCCCC">#CCCCCC</option>
+                    <option style="background-color:#FF6633" value="#FF6633">#FF6633</option>
+                    <option style="background-color:#FFCC99" value="#FFCC99">#FFCC99</option>
+                </select>
+            </li>
+            <li>路线颜色：
+                <select id="path_color" onchange="changecolor(this);" style="background-color:#000000; color:#FFFFFF;">
+                    <option style="background-color:#000000; color:#FFFFFF;" value="#000000">黑</option>
+                    <option style="background-color:#FFFFFF" value="#FFFFFF">白</option>
+                    <option style="background-color:#999999" value="#999999">灰</option>
+                    <option style="background-color:#666666" value="#666666">#666666</option>
+                    <option style="background-color:#FF0000" value="#FF0000">#FF0000</option>
+                    <option style="background-color:#00FF00" value="#00FF00">#00FF00</option>
+                    <option style="background-color:#0000FF" value="#0000FF">#0000FF</option>
+                    <option style="background-color:#FFFF00" value="#FFFF00">#FFFF00</option>
+                    <option style="background-color:#00FFFF" value="#00FFFF">#00FFFF</option>
+                    <option style="background-color:#FF00FF" value="#FF00FF">#FF00FF</option>
+                    <option style="background-color:#009966" value="#009966">#009966</option>
+                    <option style="background-color:#336633" value="#336633">#336633</option>
+                    <option style="background-color:#6666CC" value="#6666CC">#6666CC</option>
+                    <option style="background-color:#996633" value="#996633">#996633</option>
+                    <option style="background-color:#CC6699" value="#CC6699">#CC6699</option>
+                    <option style="background-color:#CCCCCC" value="#CCCCCC">#CCCCCC</option>
+                    <option style="background-color:#FF6633" value="#FF6633">#FF6633</option>
+                    <option style="background-color:#FFCC99" value="#FFCC99">#FFCC99</option>
+                </select>
+            </li>
+            <li>是否填充城市：
+                <input type="checkbox" id="if_fill" checked=true>（默认填充）
+            </li>
+        </ul>
+    </div>
+    <div class="button">
+        <input type="button" id="btnnew" value="新建图像" onclick="new_map();"></input>
+        <input type="button" id="btnstart" value="开始" onclick="start();"></input>
+        <input type="button" id="btnend" value="结束" onclick="end();"></input>
+        <input type="button" id="btncircle" value="载入测试用例(30个点的圆)" onclick="draw_circle();"></input>
+        <input type="button" id="btntest" value="测试浏览器兼容性" onclick="test();"></input>
+    </div>
+    <div id="console" class="console">
+        <textarea id="textconsole" disabled=true></textarea>
+    </div>
+</div>
+<div class="canvas">
+    <canvas id="canvas" width="500" height="500" style="border:1px solid #c3c3c3;">你的浏览器不支持Canvas!</canvas>
+</div>
+
+</body>
+
+</html>
